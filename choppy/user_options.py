@@ -4,9 +4,6 @@ import argparse
 import getpass
 import os
 # ------------------------------------------------------------------------------
-
-# getpass.getpass(prompt='Passphrase: ')
-
 def confirm_directory(subdir):
     if os.path.exists(subdir):
         if not os.path.isdir(subdir):
