@@ -9,7 +9,7 @@
 #
 #     tmpdir = tempfile.TemporaryDirectory()
 #
-#     paths = tuple(partition_file(fn, tmpdir, n))
+#     paths = tuple(partition_file(fn, tmpdir.name, n))
 #     print('File partitioned:', len(paths))
 #
 #     merge_file(paths, fnout)
@@ -24,3 +24,24 @@
 #
 #
 # # ------------------------------------------------------------------------------
+
+
+
+# def test_wobbler(t=1000):
+#     errors = []
+#     parts = [3 * i for i in range(1, 5)]
+#
+#     for _ in range(t):
+#         n_bytes = randint(1000, 10**9)
+#         for p in parts:
+#             br = calculate_byte_lengths(n_bytes, p)
+#             w = wobbler(br, 99)
+#             if sum(br) != sum(w):
+#                 errors.append(n_bytes, p, br, w)
+#             else:
+#                 continue
+#
+#     if not errors:
+#         print('No errors')
+#
+#     return errors

@@ -1,9 +1,11 @@
 #! usr/bin/env/ python3
 
 from collections import defaultdict
-from itertools import chain, count, groupby
+from itertools import chain, compress, count, groupby
 from operator import itemgetter
 import os
+from random import choice as rand_choice
+from random import randint, shuffle
 import tempfile
 
 from crypto import md5_hash
@@ -14,10 +16,10 @@ def file_info(fp):
     return os.path.getsize(fp), md5_hash(fp)
 
 
-def calculate_byte_lengths(n_bytes, partitions):
-    chunk_size = n_bytes // partitions
-    byte_reads = [chunk_size] * partitions
-    for ix in range(n_bytes % partitions):
+def calculate_byte_lengths(n_bytes, n_partitions):
+    chunk_size = n_bytes // n_partitions
+    byte_reads = [chunk_size] * n_partitions
+    for ix in range(n_bytes % n_partitions):
         byte_reads[ix] += 1
     return tuple(byte_reads)
 
@@ -37,11 +39,56 @@ def convert_nbytes(n):
     return hex_byte_read_len(nhex), nhex
 
 
-# ------------------------------------------------------------------------------
-def partition_file(fp, tmpdir, partitions):
+def wobbler(byte_reads, percent):
+    rdlist = list(byte_reads)
 
-    byte_reads = calculate_byte_lengths(os.path.getsize(fp), partitions)
-    id_tot = hex_16bit(partitions)
+    if percent > 1:
+        percent /= 100
+
+    ave = sum(rdlist) // len(rdlist)
+    delta = int(ave * percent)
+    min_v, max_v = (ave - delta, ave + delta)
+    in_bounds = lambda x: min_v <= x <= max_v
+
+    def random_offset():
+        return randint(1, delta) * rand_choice((-1, 1))
+
+    indices = [i for i in range(len(rdlist))]
+
+    def randomize_ix():
+        shuffle(indices)
+
+    for ix, n in enumerate(rdlist):
+        offset = random_offset()
+
+        if in_bounds(n + offset):
+            rdlist[ix] += offset
+
+            randomize_ix()
+            mask = (in_bounds(rdlist[rx] - offset) for rx in indices)
+            rand_ix = tuple(compress(indices, mask))
+
+            if len(rand_ix) > 1:
+                for rx in rand_ix:
+                    if rx != ix:
+                        break
+            else:
+                rx = ix
+
+            rdlist[rx] -= offset
+
+    if sum(rdlist) == sum(byte_reads):
+        return tuple(rdlist)
+    else:
+        return byte_reads
+
+
+
+# ------------------------------------------------------------------------------
+def partition_file(fp, tmpdir, n_partitions):
+
+    byte_reads = calculate_byte_lengths(os.path.getsize(fp), n_partitions)
+    id_tot = hex_16bit(n_partitions)
     fmap_end = cat(chain(convert_filename(fp), convert_hash(fp)))
 
     def metabytes(idx, nbytes):
@@ -51,7 +98,9 @@ def partition_file(fp, tmpdir, partitions):
 
     with open(fp, 'rb') as file_:
         for ix, nbytes in enumerate(byte_reads):
+
             fp_ix = os.path.join(tmpdir.name, str(ix))
+
             with open(fp_ix, 'wb') as file_ix:
                 file_ix.write(metabytes(ix, nbytes))
                 file_ix.write(file_.read(nbytes))
@@ -127,5 +176,4 @@ def recombine(paths):
 
 
 # ------------------------------------------------------------------------------
-def chop():
-    # args = parse_arguments()
+def chop(filepaths, outdir, n_partitions, wobble=0):
