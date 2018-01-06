@@ -8,9 +8,10 @@ sys.path.insert(0, parent_dir)
 test_files = os.path.join(parent_dir, 'test_files')
 
 from random import randint
+from time import perf_counter
 
-
-from choppy.choppy import chop, recombine
+from choppy.choppy import chop, merge, decrypt_and_merge, read_password_file, read_salt_file
+from choppy import crypto
 from choppy.util import *
 
 # ------------------------------------------------------------------------------
@@ -50,17 +51,58 @@ def gen_dir_files(dir_):
 def test_chop_no_encryption():
     tfs = ('pcs_mrg.pdf', '20MB.mp3')
     fps = list(map(test_dir, tfs))
-    # test_fp = test_dir('20MB.mp3')
-    # test_fp = test_dir('pcs_mrg.pdf')
     tmpdir = test_dir('chunks')
-    # fps = [test_fp]
-    chopped = chop(fps, tmpdir, 10, numfn=False, enc=False)
+    chopped = chop(fps, tmpdir, 10, wobble=50, numfn=False, enc=False)
+    merge(chopped, tmpdir)
 
-    recombine(chopped, tmpdir)
+
+def test_chop_encrypt():
+    pw_fp = test_dir('password.txt')
+    salt_fp = test_dir('salt.txt')
+
+    pw = read_password_file(pw_fp)
+    salt = read_salt_file(salt_fp)
+
+    key = crypto.load_key(pw, salt)
+
+    tfs = ('pcs_mrg.pdf', '20MB.mp3')
+    fps = list(map(test_dir, tfs))
+    tmpdir = test_dir('chunks')
+
+    chopped = chop(fps, tmpdir, 10, numfn=False, key=key, enc=True)
+    merge(chopped, tmpdir)
+
+
+def test_chop_encrypt_decrypt_merge():
+    pw_fp = test_dir('password.txt')
+    salt_fp = test_dir('salt.txt')
+
+    pw = read_password_file(pw_fp)
+    salt = read_salt_file(salt_fp)
+
+    key = crypto.load_key(pw, salt)
+
+    # p=100 >>> 1.067s
+    # p=10 >>> 0.883s
+    tfs = ('pcs_mrg.pdf', '20MB.mp3')
+
+    # real	0m43.293s
+    # tfs = ('The.Stand.S01E04.mp4',)
+
+    fps = list(map(test_dir, tfs))
+    tmpdir = test_dir('chunks')
+
+    paths = chop(fps, tmpdir, 10, numfn=False, key=key, enc=True)
+    decrypt_and_merge(paths, tmpdir, key)
 
 
 
 # ------------------------------------------------------------------------------
 if __name__ == '__main__':
-    # print(sys.path)
-    test_chop_no_encryption()
+    start = perf_counter()
+
+    # test_chop_no_encryption()
+    # test_chop_encrypt()
+    test_chop_encrypt_decrypt_merge()
+
+    print('\n>>> {:.3f}s'.format(perf_counter() - start))
