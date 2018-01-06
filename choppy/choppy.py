@@ -10,7 +10,7 @@ import shutil
 import tempfile
 
 import choppy.partition as partition
-from choppy.crypto import md5_hash, batch_encrypt
+from choppy.crypto import batch_encrypt, md5_hash, hash_str
 from choppy.util import cat, fmt_hex, hex_16bit, hex_byte_read_len, encode_str_hex, decode_hex_str
 
 # ------------------------------------------------------------------------------
@@ -42,12 +42,13 @@ def chop_file(fp, fp_gen, partitions, wobble=0):
 
     id_tot = hex_16bit(partitions)
     fmap_end = cat(chain(convert_filename(fp), convert_hash(fp)))
+    group_id = hash_str(cat(map(str, byte_reads)))
 
 
     def metabytes(idx, nbytes):
         ix = hex_16bit(idx)
         nb_rd, nb_hex = convert_nbytes(nbytes)
-        metahex = cat((HEX_FP, ix, id_tot, nb_rd, nb_hex, fmap_end))
+        metahex = cat((HEX_FP, group_id, ix, id_tot, nb_rd, nb_hex, fmap_end))
         return bytes.fromhex(metahex)
 
 
@@ -87,9 +88,11 @@ def load_paths(paths):
             if fingerprint != HEX_FP:
                 continue
 
+            group_id = file_ix.read(16).hex()
+
             ix = read_int(file_ix)
             tot = read_int(file_ix)
-            seek = 12
+            seek = 28
 
             read_next = read_int(file_ix)
             nbytes = int(file_ix.read(read_next).hex(), 16)
@@ -106,7 +109,7 @@ def load_paths(paths):
             filehash = file_ix.read(read_next).hex()
             seek += read_next + 2
 
-            metadata[(tot, filename, filehash)].append((ix, seek, nbytes, fp))
+            metadata[(tot, group_id, filename, filehash)].append((ix, seek, nbytes, fp))
 
     return metadata
 
@@ -115,17 +118,43 @@ def find_valid_path_groups(paths):
     get_ix = itemgetter(0)
     metadata = load_paths(paths)
 
-    valid_keys = (k for k, v in metadata.items() if k[0] == len(v))
+    valid_keys = (k for k, v in metadata.items() if len(v) >= k[0])
 
     for key in valid_keys:
-        tot, filename, filehash = key
-        vals = metadata[key]
-        if sorted(map(get_ix, vals)) == [i for i in range(tot)]:
-            vals.sort(key=get_ix)
+        tot, group_id, filename, filehash = key
+        metapaths = metadata[key]
+        if sorted(set(map(get_ix, metapaths))) == [i for i in range(tot)]:
+            metapaths.sort(key=get_ix)
             filename = decode_hex_str(filename)
-            yield filename, filehash, vals
+
+            if len(metapaths) == tot:
+                yield filename, filehash, metapaths
+
+            else:
+                filtered_paths = []
+                for _, group in groupby(metapaths, get_ix):
+                    fpaths = tuple(group)
+                    filtered_paths.append(fpaths[0])
+
+                yield filename, filehash, filtered_paths
 
 
+
+# def find_valid_path_groups(paths):
+#     get_ix = itemgetter(0)
+#     metadata = load_paths(paths)
+#
+#     valid_keys = (k for k, v in metadata.items() if k[0] == len(v))
+#
+#     for key in valid_keys:
+#         tot, filename, filehash = key
+#         vals = metadata[key]
+#         if sorted(map(get_ix, vals)) == [i for i in range(tot)]:
+#             vals.sort(key=get_ix)
+#             filename = decode_hex_str(filename)
+#             yield filename, filehash, vals
+#
+#
 def recombine(paths, outdir):
 
     results = []

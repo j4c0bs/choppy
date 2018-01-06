@@ -48,9 +48,12 @@ def gen_dir_files(dir_):
 
 
 def test_chop_no_encryption():
-    test_fp = test_dir('20MB.mp3')
+    tfs = ('pcs_mrg.pdf', '20MB.mp3')
+    fps = list(map(test_dir, tfs))
+    # test_fp = test_dir('20MB.mp3')
+    # test_fp = test_dir('pcs_mrg.pdf')
     tmpdir = test_dir('chunks')
-    fps = [test_fp]
+    # fps = [test_fp]
     chopped = chop(fps, tmpdir, 10, numfn=False, enc=False)
 
     recombine(chopped, tmpdir)

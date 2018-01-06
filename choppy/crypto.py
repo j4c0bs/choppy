@@ -11,6 +11,10 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 # ------------------------------------------------------------------------------
+def hash_str(s):
+    return hashlib.md5(bytes(s, 'utf-8')).digest().hex()
+
+
 def md5_hash(fp):
     chunk = 2**12
     f_hash = hashlib.md5()
