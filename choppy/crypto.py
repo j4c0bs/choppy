@@ -1,14 +1,29 @@
 #! usr/bin/env/ python3
 
+# from concurrent import futures
+
 import base64
 import hashlib
 import os
 import secrets
 
-from cryptography.fernet import Fernet
+from cryptography.fernet import Fernet, InvalidToken
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+
+# ------------------------------------------------------------------------------
+def generate_salt(length=32):
+    with open('salt.txt', 'xb') as outfile:
+        outfile.write(os.urandom(length))
+
+
+def generate_password(length=32):
+    with open('password.txt', 'xt') as outfile:
+        outfile.write(secrets.token_urlsafe(length))
+
+    print('Storing passwords in plain text is not a good idea.')
+
 
 # ------------------------------------------------------------------------------
 def hash_str(s):
@@ -44,71 +59,53 @@ def load_key(password, salt, length=32, iterations=100000):
     return base64.urlsafe_b64encode(kdf.derive(password))
 
 
-def generate_salt(length=32):
-    with open('salt.txt', 'xb') as outfile:
-        outfile.write(os.urandom(length))
+def get_io_paths(paths, outdir):
+    get_path_pair = lambda fp: os.path.join(outdir, os.path.basename(fp))
+    return tuple(zip(paths, map(get_path_pair, paths)))
 
 
-def generate_password(length=32):
-    with open('password.txt', 'xw') as outfile:
-        outfile.write(secrets.token_urlsafe(length))
+# ------------------------------------------------------------------------------
+def batch_decrypt(key, paths, outdir):
+    io_paths = get_io_paths(paths, outdir)
 
-    print('Storing passwords in plain text is not a good idea.')
+    fernet = Fernet(key)
+    outpaths = []
 
+    def apply_crypto(fps):
+        fp_in, fp_out = fps
+        with open(fp_out, 'wb') as outfile:
+            with open(fp_in, 'rb') as infile:
+                try:
+                    token = fernet.decrypt(infile.read())
+                    outfile.write(token)
+                except InvalidToken:
+                    fp_out = ''
 
-def encrypt(key, fn, fnout):
-    algo = Fernet(key)
-    with open(fnout, 'wb') as outfile:
-        with open(fn, 'rb') as infile:
-            outfile.write(algo.encrypt(infile.read()))
+        return fp_out
 
+    for fps in io_paths:
+        fp_decrypted = apply_crypto(fps)
+        if fp_decrypted:
+            outpaths.append(fp_decrypted)
 
-def decrypt(key, fn, fnout):
-    algo = Fernet(key)
-    with open(fnout, 'wb') as outfile:
-        with open(fn, 'rb') as infile:
-            outfile.write(algo.decrypt(infile.read()))
-
-
-def xxcrypt(crypt_algo, fp_out, fp_in):
-    with open(fp_out, 'wb') as outfile:
-        with open(fp_in, 'rb') as infile:
-            outfile.write(crypt_algo(infile.read()))
+    return outpaths
 
 
 def batch_encrypt(key, paths, outdir):
-    fp_out = lambda fp: os.path.join(outdir, os.path.basename(fp))
+    io_paths = get_io_paths(paths, outdir)
+
     fernet = Fernet(key)
-    crypt_algo = fernet.encrypt
-    for fp in paths:
-        xxcrypt(crypt_algo, fp_out(fp), fp)
+    outpaths = []
 
+    def apply_crypto(fps):
+        fp_in, fp_out = fps
+        with open(fp_out, 'wb') as outfile:
+            with open(fp_in, 'rb') as infile:
+                outfile.write(fernet.encrypt(infile.read()))
 
+        return fp_out
 
-# def crypto_test(key, fp):
-#     filename, ext = os.path.splitext(fp)
-#     encrypted = filename + '_enc' + ext
-#     decrypted = filename + '_dec' + ext
-#
-#     passphrase = b"password"
-#     salt = os.urandom(16)
-#     key = load_key(passphrase, salt)
-#
-#     crypt_algo = Fernet(key)
-#
-#     s1 = perf_counter()
-#     run_crypto(crypt_algo.encrypt, fp, encrypted)
-#
-#     s2 = perf_counter()
-#     run_crypto(crypt_algo.decrypt, encrypted, decrypted)
-#
-#     s3 = perf_counter()
-#
-#     fp_size = os.path.getsize(fp)
-#
-#     print('-> enc: {:.4f} sec, -> dec: {:.4f} sec'.format(s2-s1, s3-s2))
-#     print('Filesize: {:,} kb'.format(fp_size // 1000))
-#     print('Encrypted filesize ratio: {:.2%}'.format(os.path.getsize(encrypted) / fp_size))
-#
-#     status = md5_hash(fp) == md5_hash(decrypted)
-#     print('Status:', status)
+    for fps in io_paths:
+        outpaths.append(apply_crypto(fps))
+
+    return outpaths

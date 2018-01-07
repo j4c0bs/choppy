@@ -10,11 +10,23 @@ import shutil
 import tempfile
 
 import choppy.partition as partition
-from choppy.crypto import batch_encrypt, md5_hash, hash_str
+from choppy.crypto import batch_decrypt, batch_encrypt, md5_hash, hash_str
 from choppy.util import cat, fmt_hex, hex_16bit, hex_byte_read_len, encode_str_hex, decode_hex_str
 
 # ------------------------------------------------------------------------------
 HEX_FP = encode_str_hex('ch0ppyFP')
+
+
+def read_password_file(fp):
+    with open(fp, 'r') as infile:
+        pw = infile.read().strip()
+    return pw
+
+
+def read_salt_file(fp):
+    with open(fp, 'rb') as infile:
+        salt = infile.read()
+    return salt
 
 
 def convert_filename(fp):
@@ -67,14 +79,6 @@ def read_int(file_, r=2):
     except ValueError:
         n = 0
     return n
-
-
-def merge_file(meta_paths, fn):
-    with open(fn, 'wb') as outfile:
-        for _, seek, nbytes, fp in meta_paths:
-            with open(fp, 'rb') as file_ix:
-                file_ix.seek(seek)
-                outfile.write(file_ix.read(nbytes))
 
 
 def load_paths(paths):
@@ -139,56 +143,75 @@ def find_valid_path_groups(paths):
                 yield filename, filehash, filtered_paths
 
 
+def merge_partitions(meta_paths, fn):
+    with open(fn, 'wb') as outfile:
+        for _, seek, nbytes, fp in meta_paths:
+            with open(fp, 'rb') as file_ix:
+                file_ix.seek(seek)
+                outfile.write(file_ix.read(nbytes))
 
-# def find_valid_path_groups(paths):
-#     get_ix = itemgetter(0)
-#     metadata = load_paths(paths)
-#
-#     valid_keys = (k for k, v in metadata.items() if k[0] == len(v))
-#
-#     for key in valid_keys:
-#         tot, filename, filehash = key
-#         vals = metadata[key]
-#         if sorted(map(get_ix, vals)) == [i for i in range(tot)]:
-#             vals.sort(key=get_ix)
-#             filename = decode_hex_str(filename)
-#             yield filename, filehash, vals
-#
-#
-def recombine(paths, outdir):
+            yield fp
 
-    results = []
 
-    valid_groups = tuple(find_valid_path_groups(paths))
+def merge(filepaths, outdir):
+
+    valid_groups = tuple(find_valid_path_groups(filepaths))
+
+    trash_files = []
+
     if not valid_groups:
-        print('>>> No partitions to merge from {} files'.format(len(paths)))
-        results.append(False)
-    else:
+        print('>>> No partitions to merge from {} files'.format(len(filepaths)))
 
+    else:
         for filename, filehash, valid_paths in valid_groups:
             filepath = os.path.join(outdir, filename)
-            merge_file(valid_paths, filepath)
 
+            used_files = tuple(merge_partitions(valid_paths, filepath))
             status = md5_hash(filepath) == filehash
 
             if status:
-                print('File contents verified for:', filepath)
+                print('File contents verified for:\n\t', filepath)
+                trash_files.extend(used_files)
             else:
-                print('File contents unverified:', filepath, filehash)
+                print('File contents unverified:\n\t', filepath, filehash)
 
-            results.append(status)
+    return trash_files
 
-    return results
+
+def cleanup_used_files(used_files, filepaths):
+    basename = os.path.basename
+    used_fn_set = set(basename(fp) for fp in used_files)
+    trash_files = (fp for fp in filepaths if basename(fp) in used_fn_set)
+    used_files.extend(trash_files)
+
+    for fp in used_files:
+        try:
+            os.remove(fp)
+        except OSError as e:
+            print('Unable to remove file: {}'.format(fp))
+
+
+def decrypt_and_merge(filepaths, outdir, key):
+    with tempfile.TemporaryDirectory() as tmpdir:
+        paths = batch_decrypt(key, filepaths, tmpdir)
+        print('>>> Decrypted files:', len(paths))
+        used_files = merge(paths, outdir)
+        cleanup_used_files(used_files, filepaths)
 
 
 # ------------------------------------------------------------------------------
 def generate_filename(outdir, sfx=0, numfn=True):
+    seen = set()
+
     for i in count(0):
         fn = i if numfn else secrets.token_urlsafe(randint(8, 16))
-        yield os.path.join(outdir, '{}.chp.{}'.format(fn, sfx))
+        fp_out = os.path.join(outdir, '{}.chp.{}'.format(fn, sfx))
+        if fp_out not in seen:
+            seen.add(fp_out)
+            yield fp_out
 
 
-def chop(filepaths, outdir, partitions, wobble=0, key=None, numfn=True, enc=True):
+def chop(filepaths, outdir, partitions, wobble=0, numfn=True, key=None, enc=True):
 
     chopped_paths = []
 
@@ -202,7 +225,8 @@ def chop(filepaths, outdir, partitions, wobble=0, key=None, numfn=True, enc=True
 
         if enc:
             if key:
-                batch_encrypt(key, paths, outdir)
+                print('Encrypting chopped files.')
+                chopped_paths.extend(batch_encrypt(key, paths, outdir))
             else:
                 print('Key not loaded. No file partitions saved.')
         else:
