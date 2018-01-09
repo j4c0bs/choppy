@@ -5,7 +5,7 @@
 import base64
 import hashlib
 import os
-import secrets
+from secrets import token_urlsafe
 
 from cryptography.fernet import Fernet, InvalidToken
 from cryptography.hazmat.backends import default_backend
@@ -13,16 +13,35 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 # ------------------------------------------------------------------------------
-def generate_salt(length=32):
-    with open('salt.txt', 'xb') as outfile:
+def rand_fn(fn, outdir):
+    return os.path.join(outdir, '{}_{}.txt'.format(fn, token_urlsafe(4)))
+
+
+def generate_salt(length=32, outdir=os.curdir):
+    with open(rand_fn('salt', outdir), 'xb') as outfile:
         outfile.write(os.urandom(length))
 
 
-def generate_password(length=32):
-    with open('password.txt', 'xt') as outfile:
-        outfile.write(secrets.token_urlsafe(length))
+def generate_password(length=32, outdir=os.curdir):
+    with open(rand_fn('password', outdir), 'xt') as outfile:
+        outfile.write(token_urlsafe(length))
 
     print('Storing passwords in plain text is not a good idea.')
+
+
+def generate_keyfile(key=None, outdir=os.curdir):
+
+    if key:
+        if isinstance(key, str):
+            key = bytes(key, 'utf-8')
+    else:
+        key = Fernet.generate_key()
+
+    fp = rand_fn('key', outdir)
+    with open(fp, 'xb') as outfile:
+        outfile.write(key)
+
+    print('Key file generated:', fp)
 
 
 # ------------------------------------------------------------------------------
@@ -43,14 +62,14 @@ def md5_hash(fp):
 
 
 # ------------------------------------------------------------------------------
-def load_key(password, salt, length=32, iterations=100000):
+def load_key(password, salt, iterations=100000):
 
     if isinstance(password, str):
         password = bytes(password, 'utf-8')
 
     kdf = PBKDF2HMAC(
         algorithm=hashes.SHA256(),
-        length=length,
+        length=32,
         salt=salt,
         iterations=iterations,
         backend=default_backend()

@@ -34,4 +34,7 @@ def decode_hex_str(hx):
     return cat(hex_str)
 
 
+HEX_FP = encode_str_hex('ch0ppyFP')
+
+
 # ------------------------------------------------------------------------------

@@ -10,7 +10,9 @@ test_files = os.path.join(parent_dir, 'test_files')
 from random import randint
 from time import perf_counter
 
-from choppy.choppy import chop, merge, decrypt_and_merge, read_password_file, read_salt_file
+from choppy.choppy import read_password_file, read_salt_file
+from choppy.chop import chop
+from choppy.merge import merge, decrypt_merge
 from choppy import crypto
 from choppy.util import *
 
@@ -93,7 +95,7 @@ def test_chop_encrypt_decrypt_merge():
     tmpdir = test_dir('chunks')
 
     paths = chop(fps, tmpdir, 10, numfn=False, key=key, enc=True)
-    decrypt_and_merge(paths, tmpdir, key)
+    decrypt_merge(paths, tmpdir, key)
 
 
 

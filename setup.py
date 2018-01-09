@@ -58,7 +58,7 @@ setup(
     data_files=[],
     entry_points={
         'console_scripts':[
-            'choppy=choppy.choppy:chop'
+            'choppy=choppy.choppy:main'
         ],
     },
 )
