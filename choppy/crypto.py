@@ -26,8 +26,6 @@ def generate_password(length=32, outdir=os.curdir):
     with open(rand_fn('password', outdir), 'xt') as outfile:
         outfile.write(token_urlsafe(length))
 
-    print('Storing passwords in plain text is not a good idea.')
-
 
 def generate_keyfile(key=None, outdir=os.curdir):
 

@@ -25,60 +25,50 @@ def main():
     args = parse_arguments()
 
     print('\n')
+    print('-'*80)
     for k, v in vars(args).items():
         print(k, ':', v)
+    print('-'*80)
     print('\n')
 
     outdir = args.outdir
+    cmd = args.command
 
-    if args.genkey:
-        crypto.generate_keyfile(outdir=outdir)
-    if args.genpw:
-        crypto.generate_password(length=args.genpw, outdir=outdir)
-    if args.gensalt:
-        crypto.generate_salt(length=args.gensalt, outdir=outdir)
+    if cmd == 'util':
+        if args.genkey:
+            crypto.generate_keyfile(outdir=outdir)
+        if args.genpw:
+            crypto.generate_password(length=args.genpw, outdir=outdir)
+        if args.gensalt:
+            crypto.generate_salt(length=args.gensalt, outdir=outdir)
 
-    if any((args.chop, args.merge, args.derkey)):
-        valid_pw = (args.pw or args.passwordfile) and args.salt
-        valid_kw = args.kw or args.keyfile
-
-        if not (valid_kw or valid_pw):
-            print('Missing key or password / salt')
-            sys.exit(0)
-
+    else:
+        if args.use_key:
+            if args.keyfile:
+                key = read_bytes_file(args.keyfile.name)
+            else:
+                key = args.kw
         else:
-            if valid_kw:
-                if args.keyfile:
-                    key = read_bytes_file(args.keyfile.name)
-                else:
-                    key = args.kw
+            if args.passwordfile:
+                password = read_password_file(args.passwordfile.name)
             else:
-                if args.passwordfile:
-                    password = read_password_file(args.passwordfile.name)
-                else:
-                    password = args.pw
+                password = args.pw
 
-                salt = read_bytes_file(args.salt.name)
-                key = crypto.load_key(password, salt, args.iterations)
+            salt = read_bytes_file(args.salt)
+            key = crypto.load_key(password, salt, args.iterations)
 
-        if args.derkey:
-            if valid_pw:
-                crypto.generate_keyfile(key, outdir)
-            else:
-                print('Unable to derive key: missing password or salt')
-                sys.exit(0)
+        get_paths = lambda arg_in: tuple(infile.name for infile in arg_in)
 
+        if cmd == 'derive':
+            crypto.generate_keyfile(key=key, outdir=outdir)
 
-        get_paths = lambda arg_cmd: tuple(infile.name for infile in arg_cmd)
-
-        if args.chop:
-            paths = get_paths(args.chop)
+        elif cmd == 'chop':
+            paths = get_paths(args.input)
             chop_encrypt(paths, outdir, key, args.partitions, args.wobble, args.randfn)
 
-        if args.merge:
-            paths = get_paths(args.merge)
+        elif cmd == 'merge':
+            paths = get_paths(args.input)
             decrypt_merge(paths, outdir, key)
-
 
 
 # ------------------------------------------------------------------------------
