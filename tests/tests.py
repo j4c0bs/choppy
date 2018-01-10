@@ -5,7 +5,6 @@ from os.path import abspath, dirname, getsize
 import sys
 parent_dir = dirname(abspath(dirname('__file__')))
 sys.path.insert(0, parent_dir)
-test_files = os.path.join(parent_dir, 'test_files')
 
 from random import randint
 import tempfile
@@ -63,38 +62,9 @@ def get_pw_salt():
     return token_urlsafe(16), os.urandom(32)
 
 # ------------------------------------------------------------------------------
-def test_dir(fp):
-    return os.path.join(test_files, fp)
-
-
 def gen_dir_files(dir_):
     for fn in os.listdir(dir_):
         yield os.path.join(dir_, fn)
-
-
-def test_chop_no_encryption():
-    tfs = ('pcs_mrg.pdf', '20MB.mp3')
-    fps = list(map(test_dir, tfs))
-    tmpdir = test_dir('chunks')
-    chopped = chop(fps, tmpdir, 10, wobble=50, numfn=False, enc=False)
-    merge(chopped, tmpdir)
-
-
-def test_chop_encrypt():
-    pw_fp = test_dir('password.txt')
-    salt_fp = test_dir('salt.txt')
-
-    pw = read_password_file(pw_fp)
-    salt = read_salt_file(salt_fp)
-
-    key = crypto.load_key(pw, salt)
-
-    tfs = ('pcs_mrg.pdf', '20MB.mp3')
-    fps = list(map(test_dir, tfs))
-    tmpdir = test_dir('chunks')
-
-    chopped = chop(fps, tmpdir, 10, numfn=False, key=key, enc=True)
-    merge(chopped, tmpdir)
 
 
 def test_chop_merge(nfiles=1, nparts=10, wobble=0):
