@@ -6,6 +6,7 @@ Choppy partitions files and encrypts using symmetric authenticated cryptography.
 After decryption, embedded metadata provides for the original input file to be recreated and verified.
 
 Features:
+
 - selectable number of partitions and randomized file size
 - straight forward cryptographic key/password input
 - encrypted file chunks can have name and extension altered with no detriment to recreating input file
