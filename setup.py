@@ -32,7 +32,7 @@ here = path.abspath(path.dirname(__file__))
 setup(
     name='choppy',
     version='0.0.1',
-    description='Partition, encrypt, and recombine files.',
+    description='Partition, encrypt, decrypt, and reassemble files.',
     long_description=open('README.rst').read(),
     url='https://github.com/j4c0bs/choppy',
     author='Jeremy Jacobs',
@@ -42,14 +42,17 @@ setup(
         'Environment :: Console',
         'Intended Audience :: Developers',
         'Intended Audience :: End Users/Desktop',
+        'Intended Audience :: Information Technology',
         'Intended Audience :: Science/Research',
         'License :: OSI Approved :: BSD License',
         'Operating System :: OS Independent',
         'Programming Language :: Python :: 3.6',
+        'Topic :: Communications :: File Sharing',
+        'Topic :: Security :: Cryptography',
         'Topic :: Utilities'
     ],
 
-    keywords='cryptography p2p',
+    keywords='cryptography partition',
     packages=find_packages(exclude=['docs']),
     python_requires='>3.6',
     install_requires=['cryptography'],
