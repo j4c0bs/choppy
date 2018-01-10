@@ -24,23 +24,17 @@ def read_bytes_file(fp):
 def main():
     args = parse_arguments()
 
-    print('\n')
-    print('-'*80)
-    for k, v in vars(args).items():
-        print(k, ':', v)
-    print('-'*80)
-    print('\n')
-
     outdir = args.outdir
     cmd = args.command
 
     if cmd == 'util':
-        if args.genkey:
-            crypto.generate_keyfile(outdir=outdir)
-        if args.genpw:
-            crypto.generate_password(length=args.genpw, outdir=outdir)
-        if args.gensalt:
-            crypto.generate_salt(length=args.gensalt, outdir=outdir)
+        for _ in range(args.repeat):
+            if args.genkey:
+                crypto.generate_keyfile(outdir=outdir)
+            if args.genpw:
+                crypto.generate_password(length=args.genpw, outdir=outdir)
+            if args.gensalt:
+                crypto.generate_salt(length=args.gensalt, outdir=outdir)
 
     else:
         if args.use_key:

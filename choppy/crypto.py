@@ -1,7 +1,5 @@
 #! usr/bin/env/ python3
 
-# from concurrent import futures
-
 import base64
 import hashlib
 import os
@@ -39,7 +37,7 @@ def generate_keyfile(key=None, outdir=os.curdir):
     with open(fp, 'xb') as outfile:
         outfile.write(key)
 
-    print('Key file generated:', fp)
+    # print('Key file generated:', os.path.relpath(fp))
 
 
 # ------------------------------------------------------------------------------

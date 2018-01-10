@@ -8,7 +8,11 @@ sys.path.insert(0, parent_dir)
 test_files = os.path.join(parent_dir, 'test_files')
 
 from random import randint
+import tempfile
+from secrets import token_urlsafe
 from time import perf_counter
+
+from cryptography.fernet import Fernet
 
 from choppy.choppy import read_password_file, read_salt_file
 from choppy.chop import chop
@@ -39,6 +43,24 @@ def test_utils():
     test_word = 'TEST word !@#$% _-,. 1234567890'
     assert decode_hex_str(encode_str_hex(test_word)) == test_word
 
+
+# ------------------------------------------------------------------------------
+def rand_fn(outdir):
+    return os.path.join(outdir, '{}.txt'.format(token_urlsafe(4)))
+
+def make_file(tmpdir, filesize=1024):
+    fp = rand_fn(tmpdir)
+    with open(fp, 'xb') as outfile:
+        outfile.write(os.urandom(filesize))
+
+    return fp
+
+
+def get_key():
+    return Fernet.generate_key()
+
+def get_pw_salt():
+    return token_urlsafe(16), os.urandom(32)
 
 # ------------------------------------------------------------------------------
 def test_dir(fp):

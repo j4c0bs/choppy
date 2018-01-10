@@ -71,7 +71,6 @@ def chop(filepaths, outdir, partitions, wobble, randfn):
 
     chopped_paths = []
     for ix, fp in enumerate(filepaths):
-        # outpath_gen = generate_filename(outdir, sfx=ix, randfn=randfn)
         outpath_gen = generate_filename(outdir, ix, randfn)
         chopped_paths.extend(partition_file(fp, outpath_gen, partitions, wobble))
 
@@ -87,43 +86,3 @@ def chop_encrypt(filepaths, outdir, key, partitions, wobble=0, randfn=False):
         encrypted_paths = batch_encrypt(key, chopped_paths, outdir)
 
     return encrypted_paths
-
-
-
-
-# if enc:
-#     if key:
-#         print('Encrypting chopped files.')
-#         chopped_paths.extend(batch_encrypt(key, paths, outdir))
-#     else:
-#         print('Key not loaded. No file partitions saved.')
-# else:
-#     outpath = lambda fp_in: os.path.join(outdir, os.path.basename(fp_in))
-#     for fp in paths:
-#         chopped_paths.append(shutil.move(fp, outpath(fp)))
-
-
-# def chop(filepaths, outdir, partitions, wobble=0, randfn=False, key=None, enc=True):
-#
-#     chopped_paths = []
-#
-#     with tempfile.TemporaryDirectory() as tmpdir:
-#         paths = []
-#         for ix, fp in enumerate(filepaths):
-#             outpath_gen = generate_filename(tmpdir, sfx=ix, randfn=randfn)
-#             paths.extend(partition_file(fp, outpath_gen, partitions, wobble))
-#
-#         print('> Files chopped: {}'.format(len(paths) // partitions))
-#
-#         if enc:
-#             if key:
-#                 print('Encrypting chopped files.')
-#                 chopped_paths.extend(batch_encrypt(key, paths, outdir))
-#             else:
-#                 print('Key not loaded. No file partitions saved.')
-#         else:
-#             outpath = lambda fp_in: os.path.join(outdir, os.path.basename(fp_in))
-#             for fp in paths:
-#                 chopped_paths.append(shutil.move(fp, outpath(fp)))
-#
-#     return chopped_paths

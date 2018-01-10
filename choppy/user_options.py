@@ -29,14 +29,36 @@ def validate_directory(user_dir):
 
 
 # ------------------------------------------------------------------------------
+def show_tips():
+    return """
+---- choppy quick start ----
+
+1. Generate random key file (key.txt):
+    choppy util --gen-key
+
+2. Chop file into 13 parts and encrypt:
+    choppy chop -i file.txt -n 13 --use-key -k key.txt
+
+3. Store or securely transfer chopped files and key.txt.
+
+4. Decrypt merge files into original:
+    choppy merge -i [infiles] --use-key -k key.txt
+
+note: The md5 hash of the original input file is stored within the plaintext
+chopped files. After merging, the output file is verified by comparing its md5
+hash to the original. If verified, any encrypted file used in the merge will be
+automatically removed.
+"""
+
+# ------------------------------------------------------------------------------
 def load_pw_options(subcmd):
 
     pwgrp = subcmd.add_argument_group('Password Input')
 
     pwgrp.add_argument(
-        '-f', '--pwfile', type=argparse.FileType('rb'),
+        '-p', '--pw-file', type=argparse.FileType('rb'),
         dest='passwordfile', metavar='infile',
-        help='File containing password for key derivation - or enter at prompt.')
+        help='File containing password for key derivation.')
 
     pwgrp.add_argument(
         '-s', '--salt', type=argparse.FileType('rb'), metavar='infile',
@@ -54,18 +76,18 @@ def load_keypass_options(subcmd, pfx):
 
     kpg.add_argument(
         '--use-key', action='store_true', dest='use_key',
-        help='Use key for {}cryption.'.format(pfx))
+        help='Enables usage of key for {}cryption. Enter in secure prompt or specify file with -k.'.format(pfx))
 
     kpg.add_argument(
         '--use-pw', action='store_true', dest='use_pw',
-        help='Use password, salt, iterations for {}cryption.'.format(pfx))
+        help='Enables usage of password, salt, iterations for {}cryption. Enter in secure prompt or specify file with -p.'.format(pfx))
 
     key_opt = subcmd.add_argument_group('Key Input')
 
     key_opt.add_argument(
         '-k', '--key-file', type=argparse.FileType('rb'),
         dest='keyfile', metavar='infile',
-        help='File containing base64 encoded 32 byte key - or enter at prompt.')
+        help='File containing base64 encoded 32 byte key.')
 
     load_pw_options(subcmd)
 
@@ -74,15 +96,16 @@ def parse_arguments():
     """Parse command line arguments."""
 
     parser = argparse.ArgumentParser(
-        prog='choppy', description='chop -> encrypt -> ? -> decrypt -> merge',
+        prog='choppy', description='chop -> encrypt -> (?) -> decrypt -> merge',
         allow_abbrev=False)
 
     parser.set_defaults(kw='', pw='')
     parser.set_defaults(passwordfile=None, keyfile=None)
     parser.set_defaults(use_pw=False, use_key=False)
 
-    subparsers = parser.add_subparsers(dest='command', help='CMDS help',
-        metavar='[chop | merge | derive | util]')
+    subparsers = parser.add_subparsers(
+        dest='command', metavar='[chop | merge | derive | util]',
+        help='see docs/usage for more information')
 
     chp = subparsers.add_parser('chop')
     mrg = subparsers.add_parser('merge')
@@ -97,7 +120,7 @@ def parse_arguments():
         help='Input file(s) to chop and encrypt.')
 
     chop_grp.add_argument(
-        '-p', type=int, default=10, dest='partitions', metavar='n',
+        '-n', type=int, default=10, dest='partitions', metavar='n',
         help='Create n partitions from each input file(s).')
 
     chop_grp.add_argument(
@@ -142,13 +165,19 @@ def parse_arguments():
         help='Generate n files per command.')
 
     # --------------------------------------------------------------------------
-    parser.add_argument(
-        '-o', '--outdir', type=validate_directory, default=os.getcwd(),
-        help='Output directory.')
+    for grp in (chp, mrg, derkey, util):
+        grp.add_argument(
+            '-o', '--outdir', type=validate_directory, default=os.getcwd(),
+            help='Output directory.')
 
     parser.add_argument('-v', '--version', action='version', version=VERSION)
+    parser.add_argument('-q', action='store_true', help='show quick start and exit')
 
     args = parser.parse_args()
+
+    if args.q:
+        print(show_tips())
+        sys.exit(0)
 
     if args.command != 'util':
 
