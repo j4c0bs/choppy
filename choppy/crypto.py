@@ -55,7 +55,6 @@ def md5_hash(fp):
     return f_hash.hexdigest()
 
 
-# ------------------------------------------------------------------------------
 def load_key(password, salt, iterations=100000):
 
     if isinstance(password, str):
@@ -77,7 +76,6 @@ def get_io_paths(paths, outdir):
     return tuple(zip(paths, map(get_path_pair, paths)))
 
 
-# ------------------------------------------------------------------------------
 def batch_decrypt(key, paths, outdir):
     io_paths = get_io_paths(paths, outdir)
 

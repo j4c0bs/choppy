@@ -26,7 +26,6 @@ def convert_nbytes(n):
     return hex_byte_read_len(nhex), nhex
 
 
-# ------------------------------------------------------------------------------
 def partition_file(fp, outpaths, partitions, wobble=0):
 
     byte_reads = partition.byte_lengths(os.path.getsize(fp), partitions)
@@ -54,7 +53,6 @@ def partition_file(fp, outpaths, partitions, wobble=0):
                 yield file_ix.name
 
 
-# ------------------------------------------------------------------------------
 def generate_filename(outdir, sfx=0, randfn=False):
     seen = set()
 

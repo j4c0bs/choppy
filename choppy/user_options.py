@@ -5,8 +5,8 @@ import getpass
 import os
 import sys
 
-# from choppy.version import VERSION
-VERSION = '0.0.1'
+from choppy.version import VERSION
+
 # ------------------------------------------------------------------------------
 def confirm_directory(subdir):
     if os.path.exists(subdir):
@@ -28,7 +28,6 @@ def validate_directory(user_dir):
         raise argparse.ArgumentTypeError(msg)
 
 
-# ------------------------------------------------------------------------------
 def show_tips():
     return """
 ---- choppy quick start ----
@@ -39,7 +38,8 @@ def show_tips():
 2. Chop file into 13 parts and encrypt:
     choppy chop -i file.txt -n 13 --use-key -k key.txt
 
-3. Store or securely transfer chopped files and key.txt.
+3. Store or securely transfer chopped files and key.txt. File name, extension
+have no effect on the merge process and can be modified as needed.
 
 4. Decrypt merge files into original:
     choppy merge -i [infiles] --use-key -k key.txt
@@ -48,9 +48,10 @@ note: The md5 hash of the original input file is stored within the plaintext
 chopped files. After merging, the output file is verified by comparing its md5
 hash to the original. If verified, any encrypted file used in the merge will be
 automatically removed.
+
 """
 
-# ------------------------------------------------------------------------------
+
 def load_pw_options(subcmd):
 
     pwgrp = subcmd.add_argument_group('Password Input')
@@ -149,15 +150,15 @@ def parse_arguments():
     gen_grp = util.add_argument_group('Utilities')
 
     gen_grp.add_argument(
-        '--gen-key', action='store_true', dest='genkey',
+        '-k', '--gen-key', action='store_true', dest='genkey',
         help='Write file containing a randomly generated password of n characters.')
 
     gen_grp.add_argument(
-        '--gen-pw', type=int, default=0, metavar='n', dest='genpw',
+        '-p', '--gen-pw', type=int, default=0, metavar='n', dest='genpw',
         help='Write file containing randomly generated password of n characters.')
 
     gen_grp.add_argument(
-        '--gen-salt', type=int, default=0, metavar='n', dest='gensalt',
+        '-s', '--gen-salt', type=int, default=0, metavar='n', dest='gensalt',
         help='Write file containing randomly generated salt of n bytes. Standard: 32')
 
     gen_grp.add_argument(
