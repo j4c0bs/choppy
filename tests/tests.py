@@ -14,8 +14,8 @@ from time import perf_counter
 
 from cryptography.fernet import Fernet
 
-from choppy.choppy import read_password_file, read_salt_file
-from choppy.chop import chop
+from choppy.choppy import read_password_file, read_bytes_file
+from choppy.chop import chop, chop_encrypt
 from choppy.merge import merge, decrypt_merge
 from choppy import crypto
 from choppy.util import *
@@ -97,28 +97,19 @@ def test_chop_encrypt():
     merge(chopped, tmpdir)
 
 
-def test_chop_encrypt_decrypt_merge():
-    pw_fp = test_dir('password.txt')
-    salt_fp = test_dir('salt.txt')
+def test_chop_merge(nfiles=1, nparts=10, wobble=0):
 
-    pw = read_password_file(pw_fp)
-    salt = read_salt_file(salt_fp)
+    key = get_key()
 
-    key = crypto.load_key(pw, salt)
+    with tempfile.TemporaryDirectory() as tmpdir:
 
-    # p=100 >>> 1.067s
-    # p=10 >>> 0.883s
-    tfs = ('pcs_mrg.pdf', '20MB.mp3')
+        paths = [make_file(tmpdir) for _ in range(nfiles)]
 
-    # real	0m43.293s
-    # tfs = ('The.Stand.S01E04.mp4',)
-
-    fps = list(map(test_dir, tfs))
-    tmpdir = test_dir('chunks')
-
-    paths = chop(fps, tmpdir, 10, numfn=False, key=key, enc=True)
-    decrypt_merge(paths, tmpdir, key)
-
+        encrypted_paths = chop_encrypt(paths, tmpdir, key, nparts, wobble=wobble)
+        outdir = os.path.join(tmpdir, 'MRG')
+        os.mkdir(outdir)
+        status = decrypt_merge(encrypted_paths, outdir, key)
+        assert status
 
 
 # ------------------------------------------------------------------------------
@@ -127,6 +118,9 @@ if __name__ == '__main__':
 
     # test_chop_no_encryption()
     # test_chop_encrypt()
-    test_chop_encrypt_decrypt_merge()
+    # test_chop_encrypt_decrypt_merge()
+
+    test_chop_merge()
+    test_chop_merge(nfiles=10, nparts=10, wobble=50)
 
     print('\n>>> {:.3f}s'.format(perf_counter() - start))

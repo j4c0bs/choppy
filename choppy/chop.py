@@ -4,7 +4,6 @@ from itertools import chain, count
 import os
 from random import randint
 from secrets import token_urlsafe
-# import shutil
 import tempfile
 
 import choppy.partition as partition
@@ -74,9 +73,10 @@ def chop(filepaths, outdir, partitions, wobble, randfn):
         outpath_gen = generate_filename(outdir, ix, randfn)
         chopped_paths.extend(partition_file(fp, outpath_gen, partitions, wobble))
 
-    print('>>> Files chopped: {}'.format(len(chopped_paths) // partitions))
-    print('>>> File partitions generated: {}'.format(len(chopped_paths)))
 
+    n_parts = len(chopped_paths)
+    n_files = n_parts // partitions
+    print('>>> Files chopped: {}, Partitions generated: {}'.format(n_files, n_parts))
     return chopped_paths
 
 

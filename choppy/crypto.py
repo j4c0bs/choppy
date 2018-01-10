@@ -37,8 +37,6 @@ def generate_keyfile(key=None, outdir=os.curdir):
     with open(fp, 'xb') as outfile:
         outfile.write(key)
 
-    # print('Key file generated:', os.path.relpath(fp))
-
 
 # ------------------------------------------------------------------------------
 def hash_str(s):
