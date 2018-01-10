@@ -52,43 +52,57 @@ automatically removed.
 """
 
 
-def load_pw_options(subcmd):
+def load_pw_options(subcmd, pw_only=False):
+    """Initializes key and password input options.
 
-    pwgrp = subcmd.add_argument_group('Password Input')
+    Args:
+        subcmd: Argparse sub_parser instance
+        pw_only: bool - flag to alter help text
+
+    """
+
+    if pw_only:
+        grp_heading = 'Password Input'
+        i_help = 'file containing password for key derivation'
+    else:
+        grp_heading = 'Key / Password Input'
+        i_help = 'file containing key or password'
+
+    pwgrp = subcmd.add_argument_group(grp_heading)
 
     pwgrp.add_argument(
-        '-p', '--pw-file', type=argparse.FileType('rb'),
-        dest='passwordfile', metavar='infile',
-        help='File containing password for key derivation.')
+        '-i', type=argparse.FileType('rb'),
+        dest='kp_file', metavar='(k|pw) infile', help=i_help)
 
     pwgrp.add_argument(
-        '-s', '--salt', type=argparse.FileType('rb'), metavar='infile',
-        help='File containing salt for key derivation - required for use with password.')
+        '-s', '--salt', type=argparse.FileType('rb'), metavar='salt-file',
+        help='file containing salt for key derivation - required for use with password')
 
     pwgrp.add_argument(
         '-t', '--iterations', type=int, default=10**5, metavar='n',
-        help='Perform n iterations in key derivation. Defaults to 100,000.')
+        help='perform n iterations in key derivation - defaults to 100,000')
 
 
 def load_keypass_options(subcmd, pfx):
+    """Initializes key and password selection options.
+
+    Args:
+        subcmd: Argparse sub_parser instance
+        pfx: str - str prefix to designate encrypt or decrypt in help text
+
+    """
+
     keypass_grp = subcmd.add_argument_group('Key / Password Select')
 
     kpg = keypass_grp.add_mutually_exclusive_group(required=True)
 
     kpg.add_argument(
         '--use-key', action='store_true', dest='use_key',
-        help='Enables usage of key for {}cryption. Enter in secure prompt or specify file with -k.'.format(pfx))
+        help='enables usage of key for {}cryption - enter key in secure prompt or specify file with -i'.format(pfx))
 
     kpg.add_argument(
         '--use-pw', action='store_true', dest='use_pw',
-        help='Enables usage of password, salt, iterations for {}cryption. Enter in secure prompt or specify file with -p.'.format(pfx))
-
-    key_opt = subcmd.add_argument_group('Key Input')
-
-    key_opt.add_argument(
-        '-k', '--key-file', type=argparse.FileType('rb'),
-        dest='keyfile', metavar='infile',
-        help='File containing base64 encoded 32 byte key.')
+        help='enables usage of password, salt, iterations for {}cryption - enter pw in secure prompt or specify file with -i'.format(pfx))
 
     load_pw_options(subcmd)
 
@@ -101,36 +115,45 @@ def parse_arguments():
         allow_abbrev=False)
 
     parser.set_defaults(kw='', pw='')
-    parser.set_defaults(passwordfile=None, keyfile=None)
+    parser.set_defaults(passwordfile=None, keyfile=None, kp_file=None)
     parser.set_defaults(use_pw=False, use_key=False)
 
     subparsers = parser.add_subparsers(
-        dest='command', metavar='[chop | merge | derive | util]',
+        dest='command', metavar='(chop | merge | derive | gen)',
         help='see docs/usage for more information')
 
-    chp = subparsers.add_parser('chop')
-    mrg = subparsers.add_parser('merge')
-    derkey = subparsers.add_parser('derive')
-    util = subparsers.add_parser('util')
+    chop_aliases = ['chp', 'c']
+    merge_aliases = ['mrg', 'm']
+    derive_aliases = ['der', 'd']
+    gen_aliases = ['gen', 'g']
+
+    cmds = ('chop', 'merge', 'derive', 'generate')
+    cmd_alias = (chop_aliases, merge_aliases, derive_aliases, gen_aliases)
+    cmd_map = dict(zip(cmds, cmd_alias))
+
+    chp = subparsers.add_parser('chop', aliases=chop_aliases)
+    mrg = subparsers.add_parser('merge', aliases=merge_aliases)
+    derkey = subparsers.add_parser('derive', aliases=derive_aliases)
+    gen_util = subparsers.add_parser('generate', aliases=gen_aliases)
 
     # --------------------------------------------------------------------------
     chop_grp = chp.add_argument_group('Chop')
 
     chop_grp.add_argument(
-        '-i', '--input', nargs='+', type=argparse.FileType('rb'), metavar='infile',
-        help='Input file(s) to chop and encrypt.')
+        'input', nargs='+', type=argparse.FileType('rb'), metavar='infile',
+        help='input file(s) to chop and encrypt')
 
     chop_grp.add_argument(
         '-n', type=int, default=10, dest='partitions', metavar='n',
-        help='Create n partitions from each input file(s).')
+        help='create n partitions from each input file(s)')
 
     chop_grp.add_argument(
         '-w', '--wobble', type=int, default=0, metavar='n', choices=range(1, 100),
-        help='Randomize partition size (1-99).')
+        help='randomize partition size (1-99)')
 
     chop_grp.add_argument(
         '-r', '--randfn', action='store_true',
-        help='Use random file names for partitions instead of numeric.')
+        help='use random file names for partitions instead of sequential numeric')
 
     load_keypass_options(chp, pfx='en')
 
@@ -138,35 +161,35 @@ def parse_arguments():
     mrg_grp = mrg.add_argument_group('Merge')
 
     mrg_grp.add_argument(
-        '-i', '--input', nargs='+', type=argparse.FileType('rb'), metavar='infile',
-        help='Input files to decrypt and merge.')
+        'input', nargs='+', type=argparse.FileType('rb'), metavar='infile',
+        help='input files to decrypt and merge')
 
     load_keypass_options(mrg, pfx='de')
 
     # --------------------------------------------------------------------------
-    load_pw_options(derkey)
+    load_pw_options(derkey, pw_only=True)
 
     # --------------------------------------------------------------------------
-    gen_grp = util.add_argument_group('Utilities')
+    gen_grp = gen_util.add_argument_group('Utilities')
 
     gen_grp.add_argument(
-        '-k', '--gen-key', action='store_true', dest='genkey',
-        help='Write file containing a randomly generated password of n characters.')
+        '-k', '--key', action='store_true', dest='genkey',
+        help='write file containing randomly generated base64 encoded 32 byte key')
 
     gen_grp.add_argument(
-        '-p', '--gen-pw', type=int, default=0, metavar='n', dest='genpw',
-        help='Write file containing randomly generated password of n characters.')
+        '-p', '--pw', type=int, default=0, metavar='n', dest='genpw',
+        help='write file containing randomly generated password of n characters')
 
     gen_grp.add_argument(
-        '-s', '--gen-salt', type=int, default=0, metavar='n', dest='gensalt',
-        help='Write file containing randomly generated salt of n bytes. Standard: 32')
+        '-s', '--salt', type=int, default=0, metavar='n', dest='gensalt',
+        help='write file containing randomly generated salt of n bytes - Standard: 32')
 
     gen_grp.add_argument(
         '-r', '--repeat', type=int, default=1, metavar='n',
-        help='Generate n files per command.')
+        help='generate n files per command')
 
     # --------------------------------------------------------------------------
-    for grp in (chp, mrg, derkey, util):
+    for grp in (chp, mrg, derkey, gen_util):
         grp.add_argument(
             '-o', '--outdir', type=validate_directory, default=os.getcwd(),
             help='Output directory.')
@@ -180,20 +203,31 @@ def parse_arguments():
         print(show_tips())
         sys.exit(0)
 
-    if args.command != 'util':
+    if args.command not in cmd_map:
+        for k, v in cmd_map.items():
+            if args.command in v:
+                args.command = k
+                break
 
-        if args.use_key and not args.keyfile:
-            args.kw = getpass.getpass(prompt='Key: ')
+    if args.command != 'generate':
 
-        if args.use_pw or args.command == 'derive':
+        if args.use_key:
+            if not args.kp_file:
+                args.kw = getpass.getpass(prompt='Key: ')
+            else:
+                args.keyfile = args.kp_file
+
+        elif args.use_pw or args.command == 'derive':
             args.use_pw = True
 
             if not args.salt:
-                print('salt file required for password use.')
+                print('>>> salt file required for password use')
                 sys.exit(0)
 
-            if not args.passwordfile:
+            if not args.kp_file:
                 args.pw = getpass.getpass(prompt='Password: ')
+            else:
+                args.passwordfile = args.kp_file
 
     return args
 

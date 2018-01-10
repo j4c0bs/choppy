@@ -1,7 +1,5 @@
 #! usr/bin/env/ python3
 
-import sys
-
 from choppy import crypto
 from choppy.chop import chop_encrypt
 from choppy.merge import decrypt_merge
@@ -20,14 +18,20 @@ def read_bytes_file(fp):
     return data
 
 
+def path_tuple(arg_infiles):
+    return tuple(infile.name for infile in arg_infiles)
+
+
 # ------------------------------------------------------------------------------
 def main():
+    """Entry point for CLI"""
+
     args = parse_arguments()
 
     outdir = args.outdir
     cmd = args.command
 
-    if cmd == 'util':
+    if cmd == 'generate':
         for _ in range(args.repeat):
             if args.genkey:
                 crypto.generate_keyfile(outdir=outdir)
@@ -51,17 +55,15 @@ def main():
             salt = read_bytes_file(args.salt)
             key = crypto.load_key(password, salt, args.iterations)
 
-        get_paths = lambda arg_in: tuple(infile.name for infile in arg_in)
-
         if cmd == 'derive':
             crypto.generate_keyfile(key=key, outdir=outdir)
 
         elif cmd == 'chop':
-            paths = get_paths(args.input)
+            paths = path_tuple(args.input)
             chop_encrypt(paths, outdir, key, args.partitions, args.wobble, args.randfn)
 
         elif cmd == 'merge':
-            paths = get_paths(args.input)
+            paths = path_tuple(args.input)
             decrypt_merge(paths, outdir, key)
 
 
