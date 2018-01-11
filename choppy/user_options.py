@@ -145,7 +145,7 @@ def parse_arguments():
 
     chop_grp.add_argument(
         '-n', type=int, default=10, dest='partitions', metavar='n',
-        help='create n partitions from each input file(s)')
+        help='create n partitions from each input file - default: 10')
 
     chop_grp.add_argument(
         '-w', '--wobble', type=int, default=0, metavar='n', choices=range(1, 100),
@@ -192,7 +192,7 @@ def parse_arguments():
     for grp in (chp, mrg, derkey, gen_util):
         grp.add_argument(
             '-o', '--outdir', type=validate_directory, default=os.getcwd(),
-            help='Output directory.')
+            metavar='dir', help='Output directory.')
 
     parser.add_argument('-v', '--version', action='version', version=VERSION)
     parser.add_argument('-q', action='store_true', help='show quick start and exit')
