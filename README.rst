@@ -5,10 +5,8 @@ chop -> encrypt -> (?) -> decrypt -> merge
 Choppy partitions files and encrypts using symmetric authenticated cryptography.
 After decryption, embedded metadata provides for the original input file to be recreated and verified.
 
-Features / Options:
-
 - selectable number of partitions and randomized file size
-- straight forward cryptographic key/password input
+- secure cryptographic key/password input or via file
 - sequential numeric or randomized file names
 - encrypted file chunks can have name and extension altered with no detriment to recreating input file
 - chunks from multiple files can be located within the same directory and the merge command will locate and reassemble original input files
