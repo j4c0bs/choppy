@@ -18,6 +18,9 @@ from os import path
 import sys
 
 
+from choppy.version import VERSION
+
+
 if sys.argv[-1] == 'setup.py':
     print("To install choppy, run 'python setup.py install'\n")
 
@@ -31,7 +34,7 @@ here = path.abspath(path.dirname(__file__))
 
 setup(
     name='choppy',
-    version='0.0.1',
+    version=VERSION,
     description='Partition, encrypt, decrypt, and reassemble files.',
     long_description=open('README.rst').read(),
     url='https://github.com/j4c0bs/choppy',
