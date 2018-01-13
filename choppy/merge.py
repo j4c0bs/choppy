@@ -19,6 +19,20 @@ def read_int(file_, r=2):
 
 
 def load_paths(paths):
+    """Loads files and checks for valid metadata block.
+
+    Chopped partition files start with an 8 byte hex fingerprint.
+    Metadata format:
+        [fingerprint][group id hash][index][index total]
+        [read next][byte len of partition]
+        [read next][encoded filename]
+        [read next][file hash]
+
+    Arg:
+        paths: iterable of filepaths
+    Returns:
+        dict of filepaths grouped by matching metadata blocks
+    """
 
     metadata = defaultdict(list)
 
@@ -56,6 +70,15 @@ def load_paths(paths):
 
 
 def find_valid_path_groups(paths):
+    """Inspects and validates path groups by metadata.
+
+    Arg:
+        paths: iterable of filepaths with candidate partitions
+
+    Yields:
+        tuple (str filename, input file hash, iterable of partition filepaths)
+    """
+
     get_ix = itemgetter(0)
     metadata = load_paths(paths)
 
@@ -81,6 +104,16 @@ def find_valid_path_groups(paths):
 
 
 def merge_partitions(meta_paths, fn):
+    """Recreates original input file from decrypted file partitions.
+
+    Arg:
+        meta_paths: dict of sorted iterable of partition file paths
+        fn: str filepath out
+
+    Yields:
+        str filepath for merged file
+    """
+
     with open(fn, 'wb') as outfile:
         for _, seek, nbytes, fp in meta_paths:
             with open(fp, 'rb') as file_ix:
@@ -91,6 +124,16 @@ def merge_partitions(meta_paths, fn):
 
 
 def merge(filepaths, outdir):
+    """Merges groups of valid partitions and confirms reassembled file is
+        identical to original input file.
+
+    Args:
+        filepaths: iterable of str filepaths to merge
+        outdir: directory output path
+
+    Returns:
+        # tuple (bool, iterable of filepaths to remove)
+    """
 
     valid_groups = tuple(find_valid_path_groups(filepaths))
 
@@ -117,6 +160,19 @@ def merge(filepaths, outdir):
 
 
 def cleanup_used_files(used_files, filepaths):
+    """
+
+    Args:
+        # used_files: iterable of filepaths to remove
+        # filepaths:
+
+    Returns:
+        None
+
+    Raises:
+        OSError if file cannot be removed
+    """
+
     basename = os.path.basename
     used_fn_set = set(basename(fp) for fp in used_files)
     trash_files = (fp for fp in filepaths if basename(fp) in used_fn_set)
@@ -130,6 +186,11 @@ def cleanup_used_files(used_files, filepaths):
 
 
 def decrypt_merge(filepaths, outdir, key):
+    """
+    # Arg:
+    #
+    # Returns:
+    """
 
     status = False
     n_files = 0
