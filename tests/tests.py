@@ -28,7 +28,7 @@ def test_utils():
             n_hex = fmt_hex(n)
             assert not len(n_hex) % 2
             assert n == int(n_hex, 16)
-
+        return True
 
     assert cat(map(str, (i for i in range(5)))) == '01234'
     assert test_fmt_hex()
@@ -78,17 +78,20 @@ def test_chop_merge(nfiles=1, nparts=10, wobble=0):
         encrypted_paths = chop_encrypt(paths, tmpdir, key, nparts, wobble=wobble)
         outdir = os.path.join(tmpdir, 'MRG')
         os.mkdir(outdir)
-        status = decrypt_merge(encrypted_paths, outdir, key)
-        assert status
+        status = decrypt_merge(encrypted_paths, outdir, key, quiet=True)
+
+        assert all(status)
+        assert len(status) == nfiles
+
+    print('passed: test_chop_merge, nfiles={}'.format(nfiles))
 
 
 # ------------------------------------------------------------------------------
 if __name__ == '__main__':
     start = perf_counter()
 
-    # test_chop_no_encryption()
-    # test_chop_encrypt()
-    # test_chop_encrypt_decrypt_merge()
+    test_utils()
+    print('passed: test_utils')
 
     test_chop_merge()
     test_chop_merge(nfiles=10, nparts=10, wobble=50)

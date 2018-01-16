@@ -123,7 +123,7 @@ def merge_partitions(meta_paths, fn):
             yield fp
 
 
-def merge(filepaths, outdir):
+def merge(filepaths, outdir, quiet=False):
     """Merges groups of valid partitions and confirms reassembled file is
         identical to original input file.
 
@@ -137,72 +137,75 @@ def merge(filepaths, outdir):
 
     valid_groups = tuple(find_valid_path_groups(filepaths))
 
-    mrg_status = []
-    trash_files = []
+    status = []
+    used_files = []
 
-    if not valid_groups:
-        print('>>> No partitions to merge from {} files'.format(len(filepaths)))
+    if not valid_groups and not quiet:
+        print('> No partitions to merge from {} files'.format(len(filepaths)))
 
     else:
         for filename, filehash, valid_paths in valid_groups:
             filepath = os.path.join(outdir, filename)
 
-            used_files = tuple(merge_partitions(valid_paths, filepath))
-            status = md5_hash(filepath) == filehash
-            mrg_status.append(status)
+            partition_files = tuple(merge_partitions(valid_paths, filepath))
+            merge_status = md5_hash(filepath) == filehash
 
-            if status:
-                trash_files.extend(used_files)
-            else:
-                print('>>> File contents unverified:\n\t', os.path.relpath(filepath), filehash)
+            status.append(merge_status)
 
-    return mrg_status, trash_files
+            if merge_status:
+                used_files.extend(partition_files)
+            elif not merge_status and not quiet:
+                print('> File contents unverified:\n\t', os.path.relpath(filepath), filehash)
+
+    return status, used_files
 
 
-def cleanup_used_files(used_files, filepaths):
+def remove(filepaths):
     """
 
     Args:
-        # used_files: iterable of filepaths to remove
-        # filepaths:
-
-    Returns:
-        None
+        filepaths: iterable of filepaths to remove
 
     Raises:
         OSError if file cannot be removed
     """
 
-    basename = os.path.basename
-    used_fn_set = set(basename(fp) for fp in used_files)
-    trash_files = (fp for fp in filepaths if basename(fp) in used_fn_set)
-    used_files.extend(trash_files)
-
-    for fp in used_files:
+    for fp in filepaths:
         try:
             os.remove(fp)
         except OSError as e:
-            print('Unable to remove file: {}'.format(fp))
+            print('> Unable to remove file: {}'.format(fp))
 
 
-def decrypt_merge(filepaths, outdir, key):
-    """
-    # Arg:
-    #
-    # Returns:
+def decrypt_merge(filepaths, outdir, key, quiet=False):
     """
 
-    status = False
-    n_files = 0
+    Arg:
+        filepaths: iterable of str filepaths to merge
+        outdir: directory output path
+        key:
+
+    Returns:
+    """
+
+    status = []
 
     with tempfile.TemporaryDirectory() as tmpdir:
-        paths = batch_decrypt(key, filepaths, tmpdir)
-        mrg_status, used_files = merge(paths, outdir)
-        cleanup_used_files(used_files, filepaths)
-        status = all(mrg_status)
-        n_files += len(mrg_status)
+        decrypted_paths = batch_decrypt(key, filepaths, tmpdir)
+        candidates = [fp for fp in decrypted_paths if fp]
 
-    if status:
-        print('>>> Merge complete and verified for {} file(s)'.format(n_files))
+        status, used_part_files = merge(candidates, outdir, quiet)
+        trash_files = []
+
+        for enc_fp, dec_fp in zip(filepaths, decrypted_paths):
+            if dec_fp in used_part_files:
+                trash_files.append(enc_fp)
+
+        remove(trash_files)
+
+    # print(not os.path.exists(tmpdir))
+
+    if not quiet:
+        print('>>> Merge complete and verified for {} file(s)'.format(len(status)))
 
     return status

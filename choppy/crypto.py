@@ -71,19 +71,16 @@ def load_key(password, salt, iterations=100000):
     return base64.urlsafe_b64encode(kdf.derive(password))
 
 
-def get_io_paths(paths, outdir):
-    get_path_pair = lambda fp: os.path.join(outdir, os.path.basename(fp))
-    return tuple(zip(paths, map(get_path_pair, paths)))
-
-
 def batch_decrypt(key, paths, outdir):
-    io_paths = get_io_paths(paths, outdir)
+
+    def random_filename():
+        while True:
+            yield os.path.join(outdir, token_urlsafe(8))
 
     fernet = Fernet(key)
-    outpaths = []
+    decrypted_paths = []
 
-    def apply_crypto(fps):
-        fp_in, fp_out = fps
+    def decrypt_file(fp_in, fp_out):
         with open(fp_out, 'wb') as outfile:
             with open(fp_in, 'rb') as infile:
                 try:
@@ -94,29 +91,27 @@ def batch_decrypt(key, paths, outdir):
 
         return fp_out
 
-    for fps in io_paths:
-        fp_decrypted = apply_crypto(fps)
-        if fp_decrypted:
-            outpaths.append(fp_decrypted)
+    for fp_in, fp_out in zip(paths, random_filename()):
+        fp_decrypted = decrypt_file(fp_in, fp_out)
+        decrypted_paths.append(fp_decrypted)
 
-    return outpaths
+    return decrypted_paths
 
 
 def batch_encrypt(key, paths, outdir):
-    io_paths = get_io_paths(paths, outdir)
 
     fernet = Fernet(key)
     outpaths = []
 
-    def apply_crypto(fps):
-        fp_in, fp_out = fps
+    def encrypt_file(fp_in, fp_out):
         with open(fp_out, 'wb') as outfile:
             with open(fp_in, 'rb') as infile:
                 outfile.write(fernet.encrypt(infile.read()))
 
         return fp_out
 
-    for fps in io_paths:
-        outpaths.append(apply_crypto(fps))
+    for fp_in in paths:
+        fp_out = os.path.join(outdir, os.path.basename(fp_in))
+        outpaths.append(encrypt_file(fp_in, fp_out))
 
     return outpaths
