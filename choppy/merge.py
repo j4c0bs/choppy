@@ -132,7 +132,7 @@ def merge(filepaths, outdir, quiet=False):
         outdir: directory output path
 
     Returns:
-        # tuple (bool, iterable of filepaths to remove)
+        tuple (bool, iterable of filepaths to remove)
     """
 
     valid_groups = tuple(find_valid_path_groups(filepaths))
@@ -161,7 +161,7 @@ def merge(filepaths, outdir, quiet=False):
 
 
 def remove(filepaths):
-    """
+    """Removes files.
 
     Args:
         filepaths: iterable of filepaths to remove
@@ -178,14 +178,15 @@ def remove(filepaths):
 
 
 def decrypt_merge(filepaths, outdir, key, quiet=False):
-    """
+    """Decrypts, merges valid files, and removes used partition files.
 
     Arg:
         filepaths: iterable of str filepaths to merge
         outdir: directory output path
-        key:
+        key: cryptographic key for decrypting input files
 
     Returns:
+        iterable of bool
     """
 
     status = []
@@ -203,9 +204,7 @@ def decrypt_merge(filepaths, outdir, key, quiet=False):
 
         remove(trash_files)
 
-    # print(not os.path.exists(tmpdir))
-
-    if not quiet:
-        print('>>> Merge complete and verified for {} file(s)'.format(len(status)))
+    # if not quiet:
+    #     print('>>> Merge complete and verified for {} file(s)'.format(len(status)))
 
     return status
