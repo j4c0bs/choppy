@@ -192,7 +192,12 @@ def parse_arguments():
     for grp in (chp, mrg, derkey, gen_util):
         grp.add_argument(
             '-o', '--outdir', type=validate_directory, default=os.getcwd(),
-            metavar='dir', help='Output directory.')
+            metavar='dir', help='output directory')
+
+        grp.add_argument(
+            '-q', '--quiet', action='store_true',
+            help='disable all console text output')
+
 
     parser.add_argument('-v', '--version', action='version', version=VERSION)
     parser.add_argument('-q', action='store_true', help='show quick start and exit')

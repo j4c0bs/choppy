@@ -78,7 +78,7 @@ def test_chop_merge(nfiles=1, nparts=10, wobble=0):
         encrypted_paths = chop_encrypt(paths, tmpdir, key, nparts, wobble=wobble)
         outdir = os.path.join(tmpdir, 'MRG')
         os.mkdir(outdir)
-        status = decrypt_merge(encrypted_paths, outdir, key, quiet=True)
+        status = decrypt_merge(encrypted_paths, outdir, key)
 
         assert all(status)
         assert len(status) == nfiles

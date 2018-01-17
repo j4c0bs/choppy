@@ -123,7 +123,7 @@ def merge_partitions(meta_paths, fn):
             yield fp
 
 
-def merge(filepaths, outdir, quiet=False):
+def merge(filepaths, outdir):
     """Merges groups of valid partitions and confirms reassembled file is
         identical to original input file.
 
@@ -140,7 +140,7 @@ def merge(filepaths, outdir, quiet=False):
     status = []
     used_files = []
 
-    if not valid_groups and not quiet:
+    if not valid_groups:
         print('> No partitions to merge from {} files'.format(len(filepaths)))
 
     else:
@@ -154,7 +154,7 @@ def merge(filepaths, outdir, quiet=False):
 
             if merge_status:
                 used_files.extend(partition_files)
-            elif not merge_status and not quiet:
+            elif not merge_status:
                 print('> File contents unverified:\n\t', os.path.relpath(filepath), filehash)
 
     return status, used_files
@@ -177,7 +177,7 @@ def remove(filepaths):
             print('> Unable to remove file: {}'.format(fp))
 
 
-def decrypt_merge(filepaths, outdir, key, quiet=False):
+def decrypt_merge(filepaths, outdir, key):
     """Decrypts, merges valid files, and removes used partition files.
 
     Arg:
@@ -195,7 +195,7 @@ def decrypt_merge(filepaths, outdir, key, quiet=False):
         decrypted_paths = batch_decrypt(key, filepaths, tmpdir)
         candidates = [fp for fp in decrypted_paths if fp]
 
-        status, used_part_files = merge(candidates, outdir, quiet)
+        status, used_part_files = merge(candidates, outdir)
         trash_files = []
 
         for enc_fp, dec_fp in zip(filepaths, decrypted_paths):
@@ -204,7 +204,13 @@ def decrypt_merge(filepaths, outdir, key, quiet=False):
 
         remove(trash_files)
 
-    # if not quiet:
-    #     print('>>> Merge complete and verified for {} file(s)'.format(len(status)))
+
+    verified_mrg = sum(status)
+    failed_mrg = len(status) - verified_mrg
+
+    print('>>> Merge complete and verified for {} file(s)'.format(verified_mrg))
+
+    if failed_mrg:
+        print('>>> Unable to verify merge for {} file(s)'.format(failed_mrg))
 
     return status
