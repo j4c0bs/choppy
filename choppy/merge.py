@@ -7,26 +7,21 @@ import os
 import tempfile
 
 from choppy.crypto import batch_decrypt, md5_hash
-from choppy.util import decode_hex_str, HEX_FP
+from choppy import util
 
 # ------------------------------------------------------------------------------
-def read_int(file_, r=2):
-    try:
-        n = int(file_.read(r).hex(), 16)
-    except ValueError:
-        n = 0
-    return n
-
-
 def load_paths(paths):
     """Loads files and checks for valid metadata block.
 
-    Chopped partition files start with an 8 byte hex fingerprint.
+    Chopped partition files start with a 16 byte fingerprint.
     Metadata format:
-        [fingerprint][group id hash][index][index total]
-        [read next][byte len of partition]
-        [read next][encoded filename]
-        [read next][file hash]
+        [fingerprint][group id hash][index total] ||
+        [read next][encoded filename][read next][file hash] ||
+        [index][read next][byte len of partition]
+
+        [16][16][2]
+        [2][read value][2][read value]
+        [2][2][read value]
 
     Arg:
         paths: iterable of filepaths
@@ -39,32 +34,41 @@ def load_paths(paths):
     for fp in paths:
         with open(fp, 'rb') as file_ix:
 
-            fingerprint = file_ix.read(8).hex()
-            if fingerprint != HEX_FP:
+            seek = 0
+
+            fingerprint = file_ix.read(16)
+            seek += 16
+            if fingerprint != util.CFP:
                 continue
 
-            group_id = file_ix.read(16).hex()
+            group_id = file_ix.read(16)
+            seek += 16
 
-            ix = read_int(file_ix)
-            tot = read_int(file_ix)
-            seek = 28
+            ix_tot = util.decode_uint16(file_ix.read(2))
+            seek += 2
 
-            read_next = read_int(file_ix)
-            nbytes = int(file_ix.read(read_next).hex(), 16)
-            seek += read_next + 2
+            read_next = util.decode_uint16(file_ix.read(2))
+            seek += 2
+            filename = file_ix.read(read_next).decode('utf-8')
+            seek += read_next
 
-            read_next = read_int(file_ix)
-            filename = file_ix.read(read_next).hex()
-            seek += read_next + 2
-
-            read_next = read_int(file_ix)
+            read_next = util.decode_uint16(file_ix.read(2))
+            seek += 2
             if read_next % 16:
                 continue
+            filehash = file_ix.read(read_next)
+            seek += read_next
 
-            filehash = file_ix.read(read_next).hex()
-            seek += read_next + 2
+            ix = util.decode_uint16(file_ix.read(2))
+            seek += 2
 
-            metadata[(tot, group_id, filename, filehash)].append((ix, seek, nbytes, fp))
+            read_next = util.decode_uint16(file_ix.read(2))
+            seek += 2
+            nbytes = util.decode_uint(file_ix.read(read_next))
+            seek += read_next
+
+            group_key = (ix_tot, group_id, filename, filehash)
+            metadata[group_key].append((ix, seek, nbytes, fp))
 
     return metadata
 
@@ -89,7 +93,6 @@ def find_valid_path_groups(paths):
         metapaths = metadata[key]
         if sorted(set(map(get_ix, metapaths))) == [i for i in range(tot)]:
             metapaths.sort(key=get_ix)
-            filename = decode_hex_str(filename)
 
             if len(metapaths) == tot:
                 yield filename, filehash, metapaths

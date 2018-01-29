@@ -1,8 +1,18 @@
 #! usr/bin/env/ python3
 
+from itertools import chain
+import struct
+from sys import byteorder
+
+from choppy.crypto import hash_str
 
 # ------------------------------------------------------------------------------
 cat = ''.join
+
+
+def bcat(*args):
+    bx = chain.from_iterable(args)
+    return bytearray(bx)
 
 
 def fmt_hex(n):
@@ -12,29 +22,49 @@ def fmt_hex(n):
     return hx
 
 
-def hex_16bit(n):
-    return '{:0>4x}'.format(n)
-
-
-def hex_byte_read_len(hx):
-    return hex_16bit(len(hx) // 2)
-
-
-def encode_str_hex(word):
-    hex_vals = []
-    for char in word:
-        hex_vals.append(fmt_hex(ord(char)))
-    return cat(hex_vals)
-
-
-def decode_hex_str(hx):
-    hex_str = []
-    for chars in map(cat, zip(hx[::2], hx[1::2])):
-        hex_str.append(chr(int(chars, 16)))
-    return cat(hex_str)
-
-
-HEX_FP = encode_str_hex('ch0ppyFP')
+_CFP_HEX = '6368307070794650'
+CFP = hash_str(_CFP_HEX)
 
 
 # ------------------------------------------------------------------------------
+X16 = struct.Struct('>H')
+X64 = struct.Struct('>Q')
+
+
+def encode_uint16(n):
+    return X16.pack(n)
+
+
+def decode_uint16(b):
+    return X16.unpack(b)[0]
+
+
+def encode_uint64(n):
+    return X64.pack(n)
+
+
+def decode_uint64(b):
+    return X64.unpack(b)[0]
+
+
+def encode_uint(n):
+    hx = fmt_hex(n)
+    if byteorder == 'big':
+        hx = hx[::-1]
+    return bytearray.fromhex(hx)
+
+
+def decode_uint(b):
+    if len(b) == 2:
+        return decode_uint16(b)
+    elif len(b) == 8:
+        return decode_uint64(b)
+    else:
+        bx = b.hex()
+        if byteorder == 'big':
+            bx = bx[::-1]
+        return int(bx, 16)
+
+
+def byte_len(b):
+    return encode_uint16(len(b))

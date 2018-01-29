@@ -1,6 +1,6 @@
 #! usr/bin/env/ python3
 
-from itertools import chain, count
+from itertools import count
 import os
 from random import randint
 from secrets import token_urlsafe
@@ -8,83 +8,91 @@ import tempfile
 
 import choppy.partition as partition
 from choppy.crypto import batch_encrypt, hash_str, md5_hash
-from choppy.util import cat, fmt_hex, hex_16bit, hex_byte_read_len, encode_str_hex, HEX_FP
+from choppy import util
 
 # ------------------------------------------------------------------------------
 def convert_filename(fp):
-    """Converts str filename into metadata hex format.
+    """Converts str filename into metadata [byte-read][bytes] format.
 
     Arg:
         fp: str filepath
 
     Returns:
-        tuple (int, hex str)
-        int is the byte length of the hex str
+        tuple (int, bytes)
+        int: byte length
     """
 
-    fn_hex = encode_str_hex(os.path.basename(fp))
-    return hex_byte_read_len(fn_hex), fn_hex
+    fn_b = bytes(os.path.basename(fp), 'utf-8')
+    return util.byte_len(fn_b), fn_b
 
 
 def convert_hash(fp, hash_func=md5_hash):
-    """ into metadata hex format.
+    """ into metadata [byte-read][bytes] format.
 
     Args:
         fp: str filepath
         hash_func: function for calculating hash of file
 
     Returns:
-        tuple (int, hash str)
-        int is the byte length of the hash str
+        tuple (int, hash)
+        int: the byte length of the hash
     """
 
     fn_hash = hash_func(fp)
-    return hex_byte_read_len(fn_hash), fn_hash
+    return util.byte_len(fn_hash), fn_hash
 
 
 def convert_nbytes(n):
-    """Converts integer into metadata hex format.
+    """Converts integer into metadata [byte-read][bytes] format.
 
     Args:
         n: int
 
     Returns:
-        tuple (int, str hex)
-        int is the byte length of the hash str
+        tuple (int, bytes)
+        int: the byte length of the hash
     """
 
-    nhex = fmt_hex(n)
-    return hex_byte_read_len(nhex), nhex
+    if n.bit_length() <= 64:
+        nbx = util.encode_uint64(n)
+    else:
+        nbx = util.encode_uint(n)
+
+    return util.byte_len(nbx), nbx
 
 
-def partition_file(fp, outpaths, partitions, wobble=0):
+def partition_file(fp, outpaths, nparts, wobble=0):
     """Creates file partitions and embeds metadata for reassembly.
 
     Args:
         fp: str filepath
         outpaths: iterable (or generator) of filepaths for partitions
-        partitions: int number of partitions to create
+        nparts: int number of partitions to create
         wobble: int (1-99) percent to randomize partition size
 
     Yields:
         partition filepath
     """
 
-    byte_reads = partition.byte_lengths(os.path.getsize(fp), partitions)
+    byte_reads = partition.byte_lengths(os.path.getsize(fp), nparts)
 
     if wobble:
         byte_reads = partition.wobbler(byte_reads, wobble)
 
-    id_tot = hex_16bit(partitions)
-    fmap_end = cat(chain(convert_filename(fp), convert_hash(fp)))
-    group_id = hash_str(cat(map(str, byte_reads)))
+    fingerprint = util.CFP[:]
+    group_id = hash_str(''.join(map(str, byte_reads)))
+    id_tot = util.encode_uint16(nparts)
+
+    group_block = util.bcat(fingerprint, group_id, id_tot)
+    group_block.extend(util.bcat(*convert_filename(fp), *convert_hash(fp)))
 
 
     def metabytes(idx, nbytes):
-        ix = hex_16bit(idx)
-        nb_rd, nb_hex = convert_nbytes(nbytes)
-        metahex = cat((HEX_FP, group_id, ix, id_tot, nb_rd, nb_hex, fmap_end))
-        return bytes.fromhex(metahex)
+        ix = util.encode_uint16(idx)
+        cnb = convert_nbytes(nbytes)
+        part_block = util.bcat(ix, *cnb)
+        meta_block = b''.join((group_block, part_block))
+        return meta_block
 
 
     with open(fp, 'rb') as file_:
@@ -117,13 +125,13 @@ def generate_filepath(outdir, sfx=0, randfn=False):
             yield fp_out
 
 
-def chop(filepaths, outdir, partitions, wobble, randfn):
+def chop(filepaths, outdir, nparts, wobble, randfn):
     """Batch process function to manage partitioning multiple files.
 
     Args:
         filepaths: iterable of filepaths to partition
         outdir: str directory path
-        partitions: int number of partitions to create
+        nparts: int number of partitions to create
         wobble: int (1-99) percent to randomize partition size
         randfn: bool enabling random filenames instead of sequential numeric
 
@@ -134,23 +142,23 @@ def chop(filepaths, outdir, partitions, wobble, randfn):
     chopped_paths = []
     for ix, fp in enumerate(filepaths):
         outpath_gen = generate_filepath(outdir, ix, randfn)
-        chopped_paths.extend(partition_file(fp, outpath_gen, partitions, wobble))
+        chopped_paths.extend(partition_file(fp, outpath_gen, nparts, wobble))
 
     n_parts = len(chopped_paths)
-    n_files = n_parts // partitions
+    n_files = n_parts // nparts
 
     print('>>> Files chopped: {}, Partitions generated: {}'.format(n_files, n_parts))
     return chopped_paths
 
 
-def chop_encrypt(filepaths, outdir, key, partitions, wobble=0, randfn=False):
+def chop_encrypt(filepaths, outdir, key, nparts, wobble=0, randfn=False):
     """Batch process function to partition files then encrypt partitions.
 
     Args:
         filepaths: iterable of filepaths to partition
         outdir: str directory path
         key: str or bytes - encryption key
-        partitions: int number of partitions to create
+        nparts: int number of partitions to create
         wobble: int (1-99) percent to randomize partition size
         randfn: bool enabling random filenames instead of sequential numeric
 
@@ -159,7 +167,7 @@ def chop_encrypt(filepaths, outdir, key, partitions, wobble=0, randfn=False):
     """
 
     with tempfile.TemporaryDirectory() as tmpdir:
-        chopped_paths = chop(filepaths, tmpdir, partitions, wobble, randfn)
+        chopped_paths = chop(filepaths, tmpdir, nparts, wobble, randfn)
         encrypted_paths = batch_encrypt(key, chopped_paths, outdir)
 
     return encrypted_paths
