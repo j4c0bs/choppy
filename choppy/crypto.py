@@ -39,9 +39,6 @@ def generate_keyfile(key=None, outdir=os.curdir):
 
 
 # ------------------------------------------------------------------------------
-# def hash_str(s):
-#     return hashlib.md5(bytes(s, 'utf-8')).digest().hex()
-
 def hash_str(s):
     return hashlib.md5(bytes(s, 'utf-8')).digest()
 
@@ -55,7 +52,6 @@ def md5_hash(fp):
             f_hash.update(data)
             data = file_.read(chunk)
 
-    # return f_hash.hexdigest()
     return f_hash.digest()
 
 
