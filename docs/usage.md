@@ -6,6 +6,8 @@ Choppy generates encrypted file partitions which can be decrypted and reassemble
 All cryptographic operations are handled by the [pyca/cryptography](https://cryptography.io/en/latest/) library. My knowledge of cryptography is limited but I know enough to not write my own crypto functions.
 
 
+----  
+
 ### Choptions:  
 
 - number of partitions to generate for each input file (default = 10)  
@@ -21,6 +23,8 @@ All cryptographic operations are handled by the [pyca/cryptography](https://cryp
         -r, --randfn
 
 
+----  
+
 ### Key / Password Options:  
 
 [Fernet symmetric cryptography](https://cryptography.io/en/latest/fernet/)  
@@ -30,7 +34,7 @@ Choppy uses symmetric authenticated cryptography. A shared, secret key is used f
 Keys are deterministically derived from a password, salt, and iteration count.
 
 
-##### Using Keys:  
+#### Using Keys:  
 
 1. **Generate** text file containing random, cryptographic key (key.txt):  
 
@@ -45,7 +49,7 @@ Keys are deterministically derived from a password, salt, and iteration count.
         choppy merge *.chp.* --use-key -i key.txt
 
 
-##### Using Passwords:  
+#### Using Passwords:  
 
 Passwords are always used in combination with a salt file and iteration count. All 3 pieces of information are necessary for deriving a useable key. By default, choppy sets iterations at 100,000.  
 
@@ -78,7 +82,9 @@ Passwords are always used in combination with a salt file and iteration count. A
             choppy merge *.chp.* --use-pw --salt salt.txt --iterations 100000
 
 
-##### Deriving keys from password, salt, iterations:  
+----  
+
+#### Deriving keys from password, salt, iterations:  
 
 **Derive** key and write to a text file. Files encrypted via password/salt can be decrypted using the derived key.   
 
