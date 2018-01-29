@@ -11,6 +11,10 @@ After decryption, embedded metadata provides for the original input file to be r
 - encrypted file chunks can have name and extension altered with no detriment to recreating input file
 - chunks from multiple files can be located within the same directory and the merge command will locate and reassemble original input files
 
+All cryptographic operations are handled by the
+`pyca-cryptography <https://cryptography.io/en/latest/>`_
+library. My knowledge of cryptography is limited but I know enough to not write my own crypto functions.
+
 
 Installation
 ------------
