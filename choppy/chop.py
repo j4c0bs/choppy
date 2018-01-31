@@ -148,10 +148,6 @@ def chop(filepaths, outdir, nparts, wobble, randfn):
         outpath_gen = generate_filepath(outdir, ix, randfn)
         chopped_paths.extend(partition_file(fp, outpath_gen, nparts, wobble))
 
-    n_parts = len(chopped_paths)
-    n_files = n_parts // nparts
-
-    print('>>> Files chopped: {}, Partitions generated: {}'.format(n_files, n_parts))
     return chopped_paths
 
 

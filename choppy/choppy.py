@@ -79,7 +79,8 @@ def main():
         elif cmd == 'chop':
             paths = path_tuple(args.input)
             p, w, r = args.partitions, args.wobble, args.randfn
-            chop_encrypt(paths, outdir, key, p, w, r)
+            e_paths = chop_encrypt(paths, outdir, key, p, w, r)
+            print('>>> Partitions generated: {}'.format(len(e_paths)))
 
         elif cmd == 'merge':
             paths = path_tuple(args.input)
