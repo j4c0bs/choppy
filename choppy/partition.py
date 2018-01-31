@@ -1,5 +1,9 @@
 #! usr/bin/env/ python3
 
+"""
+Functions for calculating and randomizing partition sizes.
+"""
+
 from itertools import compress
 from random import choice as rand_choice
 from random import randint, shuffle
@@ -7,6 +11,16 @@ from random import randint, shuffle
 
 
 def byte_lengths(n_bytes, n_partitions):
+    """Calculates evenly distributed byte reads for given file size.
+
+    Args:
+        n_bytes: int - total file size in bytes
+        n_partitions: int - number of file partitions
+
+    Returns:
+        iterable of ints
+    """
+
     chunk_size = n_bytes // n_partitions
     byte_reads = [chunk_size] * n_partitions
     for ix in range(n_bytes % n_partitions):
@@ -15,6 +29,16 @@ def byte_lengths(n_bytes, n_partitions):
 
 
 def wobbler(byte_reads, percent):
+    """Randomizes byte read amounts.
+
+    Args:
+        byte_reads: iterable of ints
+        percent: int or float < 1
+
+    Returns:
+        iterable of ints with sum == sum of byte_reads
+    """
+
     rdlist = list(byte_reads)
 
     if percent > 1:

@@ -1,5 +1,9 @@
 #! usr/bin/env/ python3
 
+"""
+Choppy merge functions.
+"""
+
 from collections import defaultdict
 from itertools import groupby
 from operator import itemgetter

@@ -1,5 +1,7 @@
 #! usr/bin/env/ python3
 
+"""Parser for CLI user options"""
+
 import argparse
 import getpass
 import os

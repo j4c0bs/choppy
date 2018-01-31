@@ -1,5 +1,9 @@
 #! usr/bin/env/ python3
 
+"""
+Choppy functions for CLI usage.
+"""
+
 import sys
 import tempfile
 

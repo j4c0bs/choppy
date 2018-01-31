@@ -1,5 +1,9 @@
 #! usr/bin/env/ python3
 
+"""
+Functions for file partioning and batch encrypting.
+"""
+
 from itertools import count
 import os
 from random import randint
