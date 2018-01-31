@@ -28,30 +28,6 @@ def validate_directory(user_dir):
         raise argparse.ArgumentTypeError(msg)
 
 
-def show_tips():
-    return """
----- choppy quick start ----
-
-1. Generate random key file (key.txt):
-    choppy util --gen-key
-
-2. Chop file into 13 parts and encrypt:
-    choppy chop -i file.txt -n 13 --use-key -k key.txt
-
-3. Store or securely transfer chopped files and key.txt. File name, extension
-have no effect on the merge process and can be modified as needed.
-
-4. Decrypt merge files into original:
-    choppy merge -i [infiles] --use-key -k key.txt
-
-note: The md5 hash of the original input file is stored within the plaintext
-chopped files. After merging, the output file is verified by comparing its md5
-hash to the original. If verified, any encrypted file used in the merge will be
-automatically removed.
-
-"""
-
-
 def load_pw_options(subcmd, pw_only=False):
     """Initializes key and password input options.
 
@@ -200,7 +176,6 @@ def parse_arguments():
 
 
     parser.add_argument('-v', '--version', action='version', version=VERSION)
-    parser.add_argument('-q', action='store_true', help='show quick start and exit')
 
     args = parser.parse_args()
 
