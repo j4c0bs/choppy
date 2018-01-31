@@ -83,7 +83,7 @@ def main():
 
         elif cmd == 'merge':
             paths = path_tuple(args.input)
-            decrypt_merge(paths, outdir, key)
+            status, filepaths = decrypt_merge(paths, outdir, key)
 
     if args.quiet:
         sys.stdout = sys_stdout_backup

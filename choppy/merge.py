@@ -145,10 +145,12 @@ def merge(filepaths, outdir):
     valid_groups = tuple(find_valid_path_groups(filepaths))
 
     status = []
+    new_files = []
     used_files = []
 
     if not valid_groups:
         print('> No partitions to merge from {} files'.format(len(filepaths)))
+        # pass
 
     else:
         for filename, filehash, valid_paths in valid_groups:
@@ -158,13 +160,12 @@ def merge(filepaths, outdir):
             merge_status = md5_hash(filepath) == filehash
 
             status.append(merge_status)
+            new_files.append(filepath)
 
             if merge_status:
                 used_files.extend(partition_files)
-            elif not merge_status:
-                print('> File contents unverified:\n\t', os.path.relpath(filepath), filehash)
 
-    return status, used_files
+    return status, new_files, used_files
 
 
 def remove(filepaths):
@@ -197,12 +198,16 @@ def decrypt_merge(filepaths, outdir, key):
     """
 
     status = []
+    dec_files = []
 
     with tempfile.TemporaryDirectory() as tmpdir:
         decrypted_paths = batch_decrypt(key, filepaths, tmpdir)
         candidates = [fp for fp in decrypted_paths if fp]
 
-        status, used_part_files = merge(candidates, outdir)
+        mrg_status, new_files, used_part_files = merge(candidates, outdir)
+        status.extend(mrg_status)
+        dec_files.extend(new_files)
+
         trash_files = []
 
         for enc_fp, dec_fp in zip(filepaths, decrypted_paths):
@@ -211,13 +216,4 @@ def decrypt_merge(filepaths, outdir, key):
 
         remove(trash_files)
 
-
-    verified_mrg = sum(status)
-    failed_mrg = len(status) - verified_mrg
-
-    print('>>> Merge complete and verified for {} file(s)'.format(verified_mrg))
-
-    if failed_mrg:
-        print('>>> Unable to verify merge for {} file(s)'.format(failed_mrg))
-
-    return status
+    return status, dec_files

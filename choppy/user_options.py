@@ -181,10 +181,6 @@ def parse_arguments():
 
     args = parser.parse_args()
 
-    if args.q:
-        print(show_tips())
-        sys.exit(0)
-
     if args.command not in cmd_map:
         for k, v in cmd_map.items():
             if args.command in v:
