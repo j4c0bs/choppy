@@ -29,6 +29,7 @@ def load_paths(paths):
 
     Arg:
         paths: iterable of filepaths
+
     Returns:
         dict of filepaths grouped by matching metadata blocks
     """
@@ -139,7 +140,9 @@ def merge(filepaths, outdir):
         outdir: directory output path
 
     Returns:
-        tuple (bool, iterable of filepaths to remove)
+        status: iterable of bool corresponding to filepath in new_files
+        new_files: iterable of filepaths for all files reassembled
+        used_files: iterable of filepaths to consumed partitions
     """
 
     valid_groups = tuple(find_valid_path_groups(filepaths))
@@ -150,7 +153,6 @@ def merge(filepaths, outdir):
 
     if not valid_groups:
         print('> No partitions to merge from {} files'.format(len(filepaths)))
-        # pass
 
     else:
         for filename, filehash, valid_paths in valid_groups:
@@ -194,7 +196,8 @@ def decrypt_merge(filepaths, outdir, key):
         key: cryptographic key for decrypting input files
 
     Returns:
-        iterable of bool
+        status: iterable of bool corresponding to filepath in new_files
+        dec_files: iterable of filepaths for all files reassembled
     """
 
     status = []
