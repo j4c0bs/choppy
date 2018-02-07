@@ -23,7 +23,7 @@ def convert_filename(fp):
 
     Returns:
         tuple (int, bytes)
-        int: byte length
+        int: byte length of encoded input
     """
 
     fn_b = bytes(os.path.basename(fp), 'utf-8')
@@ -39,7 +39,7 @@ def convert_hash(fp, hash_func=md5_hash):
 
     Returns:
         tuple (int, hash)
-        int: the byte length of the hash
+        int: byte length of the hash
     """
 
     fn_hash = hash_func(fp)
@@ -54,7 +54,7 @@ def convert_nbytes(n):
 
     Returns:
         tuple (int, bytes)
-        int: the byte length of the hash
+        int: byte length of encoded input
     """
 
     if n.bit_length() <= 64:
