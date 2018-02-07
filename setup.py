@@ -60,7 +60,7 @@ setup(
     python_requires='>3.6',
     install_requires=['cryptography'],
     extras_require={},
-    package_data={'':['LICENSE.txt', 'MANIFEST.in', 'docs/*']},
+    package_data={'':['LICENSE.txt', 'MANIFEST.in', 'docs/*', 'tests/*']},
     data_files=[],
     entry_points={
         'console_scripts':[
